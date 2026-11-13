@@ -1,28 +1,37 @@
 import { Rpc } from "@opencode/plugin/rpc"
+import type { SupabaseStatus } from "@supa-extension/supabase"
 
-const directoryInput = {
+export interface StatusInput {
+  readonly directory: string
+  readonly worktree?: string
+}
+
+export type Status = SupabaseStatus
+
+const input = {
   type: "object",
-  properties: { directory: { type: "string" } },
+  properties: {
+    directory: { type: "string" },
+    worktree: { type: "string" },
+  },
   required: ["directory"],
   additionalProperties: false,
 } as const
 
-/** What `status` answers: whether the project's local stack is up. */
-export interface Status {
-  readonly running: boolean
-}
-
-const statusOutput = {
+const output = {
   type: "object",
-  properties: { running: { type: "boolean" } },
-  required: ["running"],
+  properties: {
+    configured: { type: "boolean" },
+    running: { type: "boolean" },
+  },
+  required: ["configured", "running"],
   additionalProperties: false,
 } as const
 
 export const Supabase = Rpc.define({
   id: "supabase",
   methods: {
-    status: { input: directoryInput, output: statusOutput },
+    status: { input, output },
   },
   events: {},
 })

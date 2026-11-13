@@ -17,7 +17,8 @@
     "prepare": "vite build"
   },
   "dependencies": {
-    "@opencode/plugin": "^2.2.7"
+    "@opencode/plugin": "^2.2.7",
+    "@supa-extension/supabase": "file:../../packages/supabase"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
