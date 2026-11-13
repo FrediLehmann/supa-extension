@@ -1,12 +1,4 @@
 import { Rpc } from "@opencode/plugin/rpc"
-import type { SupabaseStatus } from "@supa-extension/supabase"
-
-export interface StatusInput {
-  readonly directory: string
-  readonly worktree?: string
-}
-
-export type Status = SupabaseStatus
 
 const input = {
   type: "object",
