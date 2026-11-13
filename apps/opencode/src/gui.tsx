@@ -41,7 +41,7 @@ function Badge(props: {
 
   return (
     <Show when={state()}>
-      <props.ui.Tooltip value={`Supabase · ${state()}`} placement='right'>
+      <props.ui.Tooltip value={state()} placement='bottom'>
         <props.ui.Button variant='ghost-muted' size='small'>
           <img
             alt={props.compact ? "Supabase" : ""}
