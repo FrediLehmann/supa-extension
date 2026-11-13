@@ -17,10 +17,12 @@ function Badge(props: {
   // nearest Suspense counter, and OpenCode Desktop wraps the whole window in a
   // Suspense boundary, so every poll would swap the window for its fallback.
   const [state, setState] = createSignal<"running" | "stopped">()
+  let shown: string | undefined
 
   const refresh = async (directory: string, worktree?: string) => {
     const next = await props.load(directory, worktree).catch(() => undefined)
     if (!next || directory !== props.session.directory) return
+    shown = next.configured ? directory : undefined
     setState(next.configured ? (next.running ? "running" : "stopped") : undefined)
   }
 
@@ -30,7 +32,8 @@ function Badge(props: {
     if (!props.active) return
     const directory = props.session.directory
     const worktree = props.session.project?.worktree
-    setState(undefined)
+    // Keep the last answer when the same timeline just became visible again.
+    if (shown !== directory) setState(undefined)
     void refresh(directory, worktree)
     const timer = setInterval(() => void refresh(directory, worktree), refreshInterval)
     onCleanup(() => clearInterval(timer))
