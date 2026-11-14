@@ -1,5 +1,5 @@
 import { Plugin } from "@opencode/plugin"
-import { status } from "@supa-extension/supabase/node"
+import { status } from "../../../packages/supabase/src/node"
 import { Supabase } from "./rpc"
 
 export default Plugin.define({
