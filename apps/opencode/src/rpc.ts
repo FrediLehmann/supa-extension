@@ -15,8 +15,10 @@ const output = {
   properties: {
     configured: { type: "boolean" },
     running: { type: "boolean" },
+    studio: { type: "string" },
+    mailpit: { type: "string" },
   },
-  required: ["configured", "running"],
+  required: ["configured", "running", "studio", "mailpit"],
   additionalProperties: false,
 } as const
 
