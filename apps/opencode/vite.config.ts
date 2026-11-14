@@ -1,6 +1,7 @@
-import { defineConfig } from "vite"
-import { gui } from "@opencode/plugin/gui/vite"
+import { defineConfig } from 'vite';
+
+import { gui } from '@opencode/plugin/gui/vite';
 
 export default defineConfig({
-  plugins: [gui()],
-})
+	plugins: [gui()]
+});

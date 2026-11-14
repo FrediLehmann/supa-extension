@@ -1,30 +1,30 @@
 {
-  "name": "opencode-supabase-extension",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./gui-experimental": "./dist/gui-experimental.cjs"
-  },
-  "files": [
-    "src",
-    "dist"
-  ],
-  "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch",
-    "prepare": "vite build"
-  },
-  "dependencies": {
-    "@opencode/plugin": "^2.2.7",
-    "@supa-extension/supabase": "file:../../packages/supabase"
-  },
-  "devDependencies": {
-    "@types/node": "^24.0.0",
-    "solid-js": "^1.9.17",
-    "typescript": "^5.9.0",
-    "vite": "^7.3.7",
-    "vite-plugin-solid": "^2.11.10"
-  }
+	"name": "opencode-supabase-extension",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./gui-experimental": "./dist/gui-experimental.cjs"
+	},
+	"files": [
+		"src",
+		"dist"
+	],
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite build --watch",
+		"prepare": "vite build"
+	},
+	"dependencies": {
+		"@opencode/plugin": "^2.2.7",
+		"@supa-extension/supabase": "file:../../packages/supabase"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"solid-js": "^1.9.17",
+		"typescript": "^5.9.0",
+		"vite": "^7.3.7",
+		"vite-plugin-solid": "^2.11.10"
+	}
 }
