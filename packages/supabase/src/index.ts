@@ -1,27 +1,25 @@
+/** The parts of `supabase/config.toml` the local stack status needs. */
+export type SupabaseConfig = {
+  readonly project_id?: string
+  readonly studio?: { readonly port?: number }
+  readonly local_smtp?: { readonly port?: number }
+  readonly inbucket?: { readonly port?: number }
+}
+
 /** The `project_id` the Supabase CLI labels the stack's containers with. */
-const projectId = (directory: string, config: string) => {
-  const configured = /^[ \t]*project_id[ \t]*=[ \t]*"([^"]+)"/m.exec(config)?.[1]
-  if (configured) return configured
+const projectId = (directory: string, config: SupabaseConfig) => {
+  if (typeof config.project_id === "string") return config.project_id
   const name = directory.replace(/[\\/]+$/, "").split(/[\\/]/).pop()
   return name || directory
 }
 
-/** A config section's body, up to the next section heading. */
-const section = (config: string, name: string) => {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  return new RegExp(`^[ \\t]*\\[${escaped}\\][ \\t]*\\r?\\n([\\s\\S]*?)(?=^[ \\t]*\\[|$)`, "m").exec(config)?.[1]
-}
-
-/** A section's `port`, or the fallback when the section or the setting is absent. */
-const port = (config: string, sectionName: string, fallback: number) => {
-  const configured = section(config, sectionName)?.match(/^[ \t]*port[ \t]*=[ \t]*([0-9]+)/m)?.[1]
-  return configured ? Number.parseInt(configured, 10) : fallback
-}
+/** A configured port, or the fallback when it is absent or not a number. */
+const port = (configured: unknown, fallback: number) => (typeof configured === "number" ? configured : fallback)
 
 /** Where `supabase start` serves Studio and Mailpit. */
-const endpoints = (config?: string) => ({
-  studio: `http://127.0.0.1:${config ? port(config, "studio", 54323) : 54323}`,
-  mailpit: `http://127.0.0.1:${config ? port(config, "local_smtp", port(config, "inbucket", 54324)) : 54324}`,
+const endpoints = (config?: SupabaseConfig) => ({
+  studio: `http://127.0.0.1:${port(config?.studio?.port, 54323)}`,
+  mailpit: `http://127.0.0.1:${port(config?.local_smtp?.port ?? config?.inbucket?.port, 54324)}`,
 })
 
 /**
@@ -30,8 +28,8 @@ const endpoints = (config?: string) => ({
  */
 export async function status(
   host: {
-    /** Reads `<directory>/supabase/config.toml`, or returns undefined when it does not exist. */
-    config(directory: string): Promise<string | undefined>
+    /** Reads and parses `<directory>/supabase/config.toml`, or returns undefined when it is absent or invalid. */
+    config(directory: string): Promise<SupabaseConfig | undefined>
     /** Whether the Supabase project's containers are running. */
     containers(project: string): Promise<boolean>
   },
