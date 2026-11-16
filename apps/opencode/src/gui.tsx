@@ -6,10 +6,17 @@ import type { SupabaseStatus } from '@supa-extension/supabase';
 
 import supabaseIcon from '../../../packages/assets/supabase-icon-green-transparent.svg?raw';
 import { Supabase } from './rpc';
+import {
+	type LifecycleResult,
+	type Target,
+	fetchStatus,
+	lifecycleCommands,
+	offline,
+	refreshInterval,
+	runLifecycle
+} from './shared';
 
 const iconURL = `data:image/svg+xml,${encodeURIComponent(supabaseIcon)}`;
-const refreshInterval = 10_000;
-const offline: SupabaseStatus = { configured: false, running: false, studio: '', mailpit: '' };
 
 const spinnerStyles = `
 @keyframes supabase-badge-spin {
@@ -28,19 +35,6 @@ const spinnerStyles = `
   .toast-v2--loading [data-icon] svg { animation-duration: 2.4s; }
 }
 `;
-
-/** The client rethrows RPC failures as plain `{ type, message }` objects, not Errors. */
-const errorMessage = (error: unknown) => {
-	if (
-		error &&
-		typeof error === 'object' &&
-		'message' in error &&
-		typeof error.message === 'string'
-	) {
-		return error.message;
-	}
-	return error instanceof Error ? error.message : String(error);
-};
 
 function Spinner() {
 	return (
@@ -74,10 +68,7 @@ function Badge(props: {
 	const action = () => props.pending().get(props.session.directory);
 
 	const refresh = async (directory: string, worktree?: string) => {
-		const next = (await ctx.client
-			.rpc(Supabase)
-			.status({ directory, worktree })
-			.catch(() => undefined)) as SupabaseStatus | undefined;
+		const next = await fetchStatus(() => ctx.client.rpc(Supabase).status({ directory, worktree }));
 		if (!next || directory !== props.session.directory) return;
 		shown = next.configured ? directory : undefined;
 		setState(next);
@@ -185,13 +176,13 @@ export default Plugin.define({
 			mark(session.directory, action);
 			try {
 				const rpc = ctx.client.rpc(Supabase);
-				const input = { directory: session.directory, worktree: session.project?.worktree };
-				const result = (await (action === 'start' ? rpc.start(input) : rpc.stop(input)).catch(
-					(error: unknown) => ({
-						ok: false,
-						message: errorMessage(error)
-					})
-				)) as { ok: boolean; message: string };
+				const input: Target = {
+					directory: session.directory,
+					worktree: session.project?.worktree
+				};
+				const result: LifecycleResult = await runLifecycle(() =>
+					action === 'start' ? rpc.start(input) : rpc.stop(input)
+				);
 				ctx.toast.show({
 					title: 'Supabase',
 					description: result.message,
@@ -206,24 +197,17 @@ export default Plugin.define({
 		};
 
 		ctx.add(Style, spinnerStyles);
-		ctx.add(Command, {
-			id: 'start',
-			title: 'Start Supabase',
-			description: 'Start the local Supabase stack',
-			group: 'Supabase',
-			section: 'session',
-			slash: { name: 'supabase-start' },
-			run: lifecycle('start')
-		});
-		ctx.add(Command, {
-			id: 'stop',
-			title: 'Stop Supabase',
-			description: 'Stop the local Supabase stack',
-			group: 'Supabase',
-			section: 'session',
-			slash: { name: 'supabase-stop' },
-			run: lifecycle('stop')
-		});
+		for (const command of lifecycleCommands) {
+			ctx.add(Command, {
+				id: command.id,
+				title: command.title,
+				description: command.description,
+				group: 'Supabase',
+				section: 'session',
+				slash: { name: command.slash },
+				run: lifecycle(command.action)
+			});
+		}
 		ctx.add(Slot, {
 			at: 'session.header',
 			order: 10,
