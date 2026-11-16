@@ -1,0 +1,14 @@
+{
+	"name": "pi-supabase-extension",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"files": [
+		"src"
+	],
+	"pi": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	}
+}
