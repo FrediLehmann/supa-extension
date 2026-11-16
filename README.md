@@ -50,11 +50,17 @@ The `claude` and `pi` directories currently contain only their READMEs.
 ## Development
 
 ```sh
-# repository root: Prettier only
+# repository root: Prettier and ESLint
 bun install
-bun run format        # write
-bun run format:check  # check only
+bun run format        # Prettier: write
+bun run format:check  # Prettier: check only
+bun run lint          # ESLint: check only
+bun run lint:fix      # ESLint: write fixes
 ```
+
+ESLint uses the flat config in [`eslint.config.mjs`](eslint.config.mjs): TypeScript rules from
+`typescript-eslint`, Solid rules for `.tsx` files, and `eslint-config-prettier` so lint and format stay
+out of each other's way.
 
 Building and running an extension is documented in its own README. Start with
 [`apps/opencode/README.md`](apps/opencode/README.md) for the available implementation.
