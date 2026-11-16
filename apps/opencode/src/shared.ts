@@ -52,6 +52,29 @@ export const errorMessage = (error: unknown) => {
 export const fetchStatus = async (call: () => Promise<unknown>) =>
 	(await call().catch(() => undefined)) as SupabaseStatus | undefined;
 
+/** A copy of the pending map with the directory's action set, or cleared when it is omitted. */
+export const markPending = (
+	current: ReadonlyMap<string, 'start' | 'stop'>,
+	directory: string,
+	action?: 'start' | 'stop'
+) => {
+	const next = new Map(current);
+	if (action) next.set(directory, action);
+	else next.delete(directory);
+	return next;
+};
+
+/** The badge's tooltip for the current stack state and any action in flight. */
+export const badgeTooltip = (running: boolean, pending?: 'start' | 'stop') => {
+	if (pending === 'start') return 'Starting…';
+	if (pending === 'stop') return 'Stopping…';
+	return running ? 'Open Studio and Mailpit' : 'Stopped';
+};
+
+/** The URLs the badge opens: Studio and Mailpit while the stack runs and nothing is in flight. */
+export const browserTargets = (status: SupabaseStatus, pending?: 'start' | 'stop') =>
+	status.running && !pending ? [status.studio, status.mailpit] : [];
+
 /** A start or stop that reports RPC failures the same way the server reports CLI failures. */
 export const runLifecycle = async (call: () => Promise<unknown>): Promise<LifecycleResult> => {
 	try {

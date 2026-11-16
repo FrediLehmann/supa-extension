@@ -9,8 +9,11 @@ import { Supabase } from './rpc';
 import {
 	type LifecycleResult,
 	type Target,
+	badgeTooltip,
+	browserTargets,
 	fetchStatus,
 	lifecycleCommands,
+	markPending,
 	offline,
 	refreshInterval,
 	runLifecycle
@@ -75,16 +78,15 @@ function Badge(props: {
 	};
 
 	const open = () => {
-		const status = state();
-		if (!status.running || action()) return;
+		const targets = browserTargets(state(), action());
+		if (targets.length === 0) return;
 		const provider = browser();
 		if (provider.status !== 'active') {
 			ctx.toast.show({ title: 'Supabase', description: 'The browser panel is unavailable.' });
 			return;
 		}
 		// Studio refuses to be framed (X-Frame-Options: DENY), so both open in the desktop browser pane.
-		provider.value.open(props.session, status.studio);
-		provider.value.open(props.session, status.mailpit);
+		for (const url of targets) provider.value.open(props.session, url);
 	};
 
 	// Cached timelines stay mounted while hidden, so only the visible one polls.
@@ -102,12 +104,7 @@ function Badge(props: {
 		onCleanup(() => clearInterval(timer));
 	});
 
-	const tooltip = () => {
-		const pending = action();
-		if (pending === 'start') return 'Starting…';
-		if (pending === 'stop') return 'Stopping…';
-		return state().running ? 'Open Studio and Mailpit' : 'Stopped';
-	};
+	const tooltip = () => badgeTooltip(state().running, action());
 
 	return (
 		<Show when={state().configured}>
@@ -146,12 +143,7 @@ export default Plugin.define({
 		const [revision, setRevision] = createSignal(0);
 
 		const mark = (directory: string, action?: 'start' | 'stop') =>
-			setPending((current) => {
-				const next = new Map(current);
-				if (action) next.set(directory, action);
-				else next.delete(directory);
-				return next;
-			});
+			setPending((current) => markPending(current, directory, action));
 
 		const lifecycle = (action: 'start' | 'stop') => async () => {
 			const session = ctx.sessions.current();
