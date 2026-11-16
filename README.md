@@ -50,17 +50,28 @@ The `claude` and `pi` directories currently contain only their READMEs.
 ## Development
 
 ```sh
-# repository root: Prettier and ESLint
+# repository root: Prettier, ESLint, and Bun test
 bun install
 bun run format        # Prettier: write
 bun run format:check  # Prettier: check only
 bun run lint          # ESLint: check only
 bun run lint:fix      # ESLint: write fixes
+bun run test          # Bun test: run the suite
+bun run test:watch    # Bun test: rerun on change
+bun run test:coverage # Bun test: text summary and coverage/lcov.info
 ```
 
 ESLint uses the flat config in [`eslint.config.mjs`](eslint.config.mjs): TypeScript rules from
 `typescript-eslint`, Solid rules for `.tsx` files, and `eslint-config-prettier` so lint and format stay
 out of each other's way.
+
+Tests use Bun's built-in runner and sit next to the code they cover (`*.test.ts`). They cover the
+host-agnostic status logic in [`packages/supabase`](packages/supabase), the TUI/GUI helpers in
+[`apps/opencode/src/shared.ts`](apps/opencode/src/shared.ts), and the slot and command wiring of both
+plugins. [`gui.test.ts`](apps/opencode/src/gui.test.ts) loads `gui.tsx` through Vite and
+`vite-plugin-solid`, since Bun's runner cannot compile Solid JSX on its own. `bun run test:coverage`
+prints a text summary and writes `coverage/lcov.info` for editors or CI; Bun only reports modules the
+suite loads directly, so the Vite-loaded GUI file is not in that number.
 
 Building and running an extension is documented in its own README. Start with
 [`apps/opencode/README.md`](apps/opencode/README.md) for the available implementation.

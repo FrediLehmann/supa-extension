@@ -134,6 +134,11 @@ bun run build   # one-off production build
 `dist/gui-experimental.cjs` is the GUI part referenced by the package `exports` and is gitignored, so
 it must exist for OpenCode Desktop to load the GUI. Rebuild it after changing the GUI.
 
+The shared TUI/GUI helpers are covered by `src/shared.test.ts`, the TUI plugin's slot and command
+wiring by `src/tui.test.ts`, and the GUI wiring by `src/gui.test.ts`. The GUI test loads `gui.tsx`
+through Vite and `vite-plugin-solid` because Bun cannot compile Solid JSX. Run the suite from the
+repository root with `bun run test`.
+
 ### Layout
 
 ```
