@@ -12,10 +12,10 @@ start/stop behave the same everywhere.
 | --------------------- | -------------------------- | --------- | ---------------------------------------------------- |
 | Supabase for OpenCode | OpenCode (TUI and Desktop) | Available | [`apps/opencode/README.md`](apps/opencode/README.md) |
 | Supabase for Claude   | Claude Code                | Planned   | [`apps/claude/README.md`](apps/claude/README.md)     |
-| Supabase for pi       | pi                         | Planned   | [`apps/pi/README.md`](apps/pi/README.md)             |
+| Supabase for pi       | pi                         | Available | [`apps/pi/README.md`](apps/pi/README.md)             |
 
 Each extension is a host adapter: it exposes the same Supabase workflow through the tooling that host
-provides. Only the OpenCode adapter is implemented today.
+provides. The OpenCode and pi adapters are implemented today.
 
 ## Shared core
 
@@ -24,28 +24,32 @@ provides. Only the OpenCode adapter is implemented today.
 - `src/index.ts` — environment-agnostic status detection. Given a config reader and a container
   checker, it reports whether a project is configured, whether its stack is running, and where Studio
   and Mailpit are served.
-- `src/node.ts` — the Node/Bun implementation. It parses `supabase/config.toml` with Bun's TOML
-  parser, checks for running containers with
+- `src/node.ts` — the Node/Bun implementation. It reads `supabase/config.toml` with the portable TOML
+  reader in `src/toml.ts`, checks for running containers with
   `docker ps --filter label=com.supabase.cli.project=<project_id>`, and runs `supabase start` /
   `supabase stop`.
+- `src/toml.ts` — the subset of TOML the status needs, since Bun's parser is unavailable when an
+  extension runs on Node. A malformed config is reported as no project.
+- `src/host.ts` — the helpers every adapter shares: polling interval, the offline status, the
+  lifecycle wrappers, and the URLs a host opens.
 
 Shared behavior belongs there; host-specific UI, commands, and packaging belong in each `apps/`
 directory.
 
 ## Repository layout
 
-```
+```text
 apps/
   opencode/          Supabase extension for OpenCode (available)
   claude/            Supabase extension for Claude Code (planned)
-  pi/                Supabase extension for pi (planned)
+  pi/                Supabase extension for pi (available)
 packages/
   supabase/          host-agnostic Supabase status and lifecycle logic
   assets/            icons and other static assets
 supabase/            local Supabase project used to develop the extensions
 ```
 
-The `claude` and `pi` directories currently contain only their READMEs.
+The `claude` directory currently contains only its README.
 
 ## Development
 
@@ -66,15 +70,18 @@ ESLint uses the flat config in [`eslint.config.mjs`](eslint.config.mjs): TypeScr
 out of each other's way.
 
 Tests use Bun's built-in runner and sit next to the code they cover (`*.test.ts`). They cover the
-host-agnostic status logic in [`packages/supabase`](packages/supabase), the TUI/GUI helpers in
+host-agnostic status logic, TOML reader, and host helpers in
+[`packages/supabase`](packages/supabase), the pi helpers and extension wiring in
+[`apps/pi/src`](apps/pi/src), the TUI/GUI helpers in
 [`apps/opencode/src/shared.ts`](apps/opencode/src/shared.ts), and the slot and command wiring of both
-plugins. [`gui.test.ts`](apps/opencode/src/gui.test.ts) loads `gui.tsx` through Vite and
+OpenCode plugins. [`gui.test.ts`](apps/opencode/src/gui.test.ts) loads `gui.tsx` through Vite and
 `vite-plugin-solid`, since Bun's runner cannot compile Solid JSX on its own. `bun run test:coverage`
 prints a text summary and writes `coverage/lcov.info` for editors or CI; Bun only reports modules the
 suite loads directly, so the Vite-loaded GUI file is not in that number.
 
-Building and running an extension is documented in its own README. Start with
-[`apps/opencode/README.md`](apps/opencode/README.md) for the available implementation.
+Building and running an extension is documented in its own README: start with
+[`apps/opencode/README.md`](apps/opencode/README.md) for OpenCode and
+[`apps/pi/README.md`](apps/pi/README.md) for pi.
 
 ## Requirements
 
