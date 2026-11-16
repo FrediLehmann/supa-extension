@@ -2,6 +2,7 @@ node_modules
 dist
 bun.lock
 bun.lockb
+coverage
 .hashtrack
 supabase/.temp
 .DS_Store
