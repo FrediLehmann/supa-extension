@@ -4,7 +4,7 @@
 		"module": "Preserve",
 		"moduleResolution": "bundler",
 		"lib": ["ESNext", "DOM"],
-		"types": ["node", "vite/client"],
+		"types": ["node", "vite/client", "bun"],
 		"jsx": "preserve",
 		"jsxImportSource": "solid-js",
 		"strict": true,
