@@ -5,19 +5,16 @@ import { Browser } from '@opencode/plugin/gui/browser';
 import type { SupabaseStatus } from '@supa-extension/supabase';
 
 import supabaseIcon from '../../../packages/assets/supabase-icon-green-transparent.svg?raw';
-import { Supabase } from './rpc';
 import {
 	type LifecycleResult,
-	type Target,
-	badgeTooltip,
 	browserTargets,
 	fetchStatus,
-	lifecycleCommands,
-	markPending,
 	offline,
 	refreshInterval,
 	runLifecycle
-} from './shared';
+} from '../../../packages/supabase/src/host';
+import { Supabase } from './rpc';
+import { type Target, badgeTooltip, lifecycleCommands, markPending } from './shared';
 
 const iconURL = `data:image/svg+xml,${encodeURIComponent(supabaseIcon)}`;
 
@@ -78,7 +75,7 @@ function Badge(props: {
 	};
 
 	const open = () => {
-		const targets = browserTargets(state(), action());
+		const targets = browserTargets(state(), Boolean(action()));
 		if (targets.length === 0) return;
 		const provider = browser();
 		if (provider.status !== 'active') {

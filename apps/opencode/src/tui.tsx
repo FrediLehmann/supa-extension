@@ -5,15 +5,14 @@ import { Plugin, usePlugin } from '@opencode/plugin/tui';
 import type { Context } from '@opencode/plugin/tui/context';
 import type { SupabaseStatus } from '@supa-extension/supabase';
 
-import { Supabase } from './rpc';
 import {
-	type Target,
 	fetchStatus,
-	lifecycleCommands,
 	offline,
 	refreshInterval,
 	runLifecycle
-} from './shared';
+} from '../../../packages/supabase/src/host';
+import { Supabase } from './rpc';
+import { type Target, lifecycleCommands } from './shared';
 
 /**
  * The most specific project whose root contains the directory, so a location in a subdirectory still finds it and
