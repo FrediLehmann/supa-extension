@@ -20,7 +20,14 @@
 		"@opencode/plugin": "^2.2.7",
 		"@supa-extension/supabase": "file:../../packages/supabase"
 	},
+	"peerDependencies": {
+		"@opentui/core": ">=0.8.1",
+		"@opentui/solid": ">=0.8.1",
+		"solid-js": ">=1.9.0"
+	},
 	"devDependencies": {
+		"@opentui/core": "0.8.1",
+		"@opentui/solid": "0.8.1",
 		"@types/node": "^24.0.0",
 		"solid-js": "^1.9.17",
 		"typescript": "^5.9.0",
