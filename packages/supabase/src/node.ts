@@ -5,17 +5,13 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 import { type SupabaseConfig, status as detect, project } from './index';
-
-declare const Bun: {
-	readonly TOML: {
-		parse(input: string): unknown;
-	};
-};
+import { parse } from './toml';
 
 const run = promisify(execFile);
 
 /**
- * Places the app's server process may not have on its PATH when OpenCode Desktop was started from the dock or Finder.
+ * Places the Supabase CLI may live in when the host app was started from a launcher with a minimal `PATH`, such as
+ * the dock or Finder on macOS.
  */
 const fallbackPath = ['/opt/homebrew/bin', '/usr/local/bin', join(homedir(), '.local', 'bin')];
 
@@ -34,8 +30,9 @@ const config = async (directory: string) => {
 	);
 	if (text === undefined) return undefined;
 	try {
-		return Bun.TOML.parse(text) as SupabaseConfig;
+		return parse(text) as SupabaseConfig;
 	} catch {
+		// A malformed config is reported as no project, matching the host contract for an absent one.
 		return undefined;
 	}
 };
