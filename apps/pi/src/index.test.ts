@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 
 import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
+import type { SupabaseStatus } from '@supabase-agent-extension/supabase';
+import { type LifecycleResult, offline } from '@supabase-agent-extension/supabase/host';
+import { directories } from '@supabase-agent-extension/supabase/node';
 
-import { type LifecycleResult, offline } from '../../../packages/supabase/src/host';
-import type { SupabaseStatus } from '../../../packages/supabase/src/index';
 import { type Host, create } from './index';
-import { directories } from './shared';
 
 type Handler = (event: unknown, ctx: ExtensionContext) => unknown;
 
@@ -283,7 +283,7 @@ describe('supabase tool', () => {
 		const fake = make({ status: running });
 		const result = await call(fake, 'status');
 		expect(result.content[0]?.text).toContain('Studio: http://127.0.0.1:54323');
-		expect(result.isError).toBeUndefined();
+		expect(result.isError).toBe(false);
 	});
 
 	it('starts the stack', async () => {

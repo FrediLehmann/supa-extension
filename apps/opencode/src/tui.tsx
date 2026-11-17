@@ -1,18 +1,17 @@
 /** @jsxImportSource @opentui/solid */
-import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
+import { Show, createSignal } from 'solid-js';
 
 import { Plugin, usePlugin } from '@opencode/plugin/tui';
 import type { Context } from '@opencode/plugin/tui/context';
-import type { SupabaseStatus } from '@supa-extension/supabase';
-
 import {
-	fetchStatus,
-	offline,
-	refreshInterval,
+	indicatorLabel,
+	lifecycleCommands,
 	runLifecycle
-} from '../../../packages/supabase/src/host';
+} from '@supabase-agent-extension/supabase/host';
+
 import { Supabase } from './rpc';
-import { type Target, lifecycleCommands } from './shared';
+import type { Target } from './shared';
+import { createStatusPoll } from './status';
 
 /**
  * The most specific project whose root contains the directory, so a location in a subdirectory still finds it and
@@ -50,39 +49,16 @@ const targetOf = (ctx: Context, sessionID?: string): Target => {
 /** A green dot while the location's local Supabase stack is running, grey when it is stopped. */
 function Indicator(props: { sessionID?: string; revision: () => number }) {
 	const ctx = usePlugin();
-	const [state, setState] = createSignal<SupabaseStatus>(offline);
-	let shown: string | undefined;
-
-	createEffect(() => {
-		const { directory, worktree } = targetOf(ctx, props.sessionID);
-		let current = true;
-
-		// A finished start or stop bumps the revision, so the indicator shows the new state without waiting for a poll.
-		props.revision();
-		// Keep the last answer when the same location just re-rendered; drop it when the location changed.
-		if (shown !== directory) setState(offline);
-
-		const refresh = async () => {
-			const next = await fetchStatus(() =>
-				ctx.client.rpc(Supabase).status({ directory, worktree })
-			);
-			if (!current || !next) return;
-			shown = next.configured ? directory : undefined;
-			setState(next);
-		};
-
-		void refresh();
-		const timer = setInterval(() => void refresh(), refreshInterval);
-		onCleanup(() => {
-			current = false;
-			clearInterval(timer);
-		});
+	const status = createStatusPoll({
+		target: () => targetOf(ctx, props.sessionID),
+		fetch: (target) => ctx.client.rpc(Supabase).status(target),
+		revision: () => props.revision()
 	});
 
 	return (
-		<Show when={state().configured}>
-			<text fg={state().running ? ctx.theme.text.feedback.success.base : ctx.theme.text.muted}>
-				{state().running ? '● Supabase' : '○ Supabase'}
+		<Show when={status().configured}>
+			<text fg={status().running ? ctx.theme.text.feedback.success.base : ctx.theme.text.muted}>
+				{indicatorLabel(status().running)}
 			</text>
 		</Show>
 	);
@@ -108,9 +84,7 @@ export default Plugin.define({
 			});
 			try {
 				const rpc = ctx.client.rpc(Supabase);
-				const result = await runLifecycle(() =>
-					action === 'start' ? rpc.start(input) : rpc.stop(input)
-				);
+				const result = await runLifecycle(() => rpc[action](input));
 				ctx.ui.toast.show({
 					title: 'Supabase',
 					message: result.message,

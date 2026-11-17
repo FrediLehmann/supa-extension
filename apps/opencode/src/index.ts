@@ -1,6 +1,6 @@
 import { Plugin } from '@opencode/plugin';
+import { start, status, stop } from '@supabase-agent-extension/supabase/node';
 
-import { start, status, stop } from '../../../packages/supabase/src/node';
 import { Supabase } from './rpc';
 
 /** The session directory and its project root, so a session in a subdirectory still finds the project. */

@@ -10,7 +10,8 @@
 		"strict": true,
 		"noEmit": true,
 		"verbatimModuleSyntax": true,
+		"allowImportingTsExtensions": true,
 		"skipLibCheck": true
 	},
-	"include": ["src"]
+	"include": ["src", "build.tui.ts"]
 }

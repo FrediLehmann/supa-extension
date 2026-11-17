@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { homedir, tmpdir } from 'node:os';
+import { join, parse, resolve } from 'node:path';
 
-import { status } from './node';
+import { directories, status } from './node';
 
 /** A temporary project with the given `supabase/config.toml` content. */
 const project = async (config?: string) => {
@@ -44,6 +44,51 @@ describe('status', () => {
 		const { root, directory } = await project();
 		try {
 			expect((await status(directory)).configured).toBe(false);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+});
+
+describe('directories', () => {
+	it('walks from the session directory to the git root', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'supa-'));
+		try {
+			const project = join(root, 'project');
+			const nested = join(project, 'packages', 'app');
+			await mkdir(join(project, '.git'), { recursive: true });
+			await mkdir(nested, { recursive: true });
+
+			expect(directories(nested)).toEqual([nested, join(project, 'packages'), project]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it('ends at the filesystem root outside the home directory', () => {
+		const cwd = join(tmpdir(), 'supa-no-git', 'nested');
+		const found = directories(cwd);
+		expect(found[0]).toBe(resolve(cwd));
+		expect(found.at(-1)).toBe(parse(resolve(cwd)).root);
+	});
+
+	it('does not reach into the home directory', () => {
+		const cwd = join(homedir(), 'supa-no-git', 'nested');
+		const found = directories(cwd);
+		expect(found[0]).toBe(resolve(cwd));
+		expect(found).not.toContain(resolve(homedir()));
+		expect(found.at(-1)).toBe(resolve(join(homedir(), 'supa-no-git')));
+	});
+
+	it('includes the session directory when it is the home directory', () => {
+		expect(directories(homedir())[0]).toBe(resolve(homedir()));
+	});
+
+	it('stops at the session directory when it is the git root', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'supa-'));
+		try {
+			await mkdir(join(root, '.git'));
+			expect(directories(root)).toEqual([root]);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}

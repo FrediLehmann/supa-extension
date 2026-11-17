@@ -1,11 +1,13 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
-import { type SupabaseConfig, status as detect, project } from './index';
-import { parse } from './toml';
+import { openCommand } from './host.ts';
+import { type SupabaseConfig, status as detect, project } from './index.ts';
+import { parse } from './toml.ts';
 
 const run = promisify(execFile);
 
@@ -137,3 +139,31 @@ export function start(...directories: Array<string | undefined>) {
 export function stop(...directories: Array<string | undefined>) {
 	return lifecycle('stop', directories);
 }
+
+/**
+ * The directories a status read checks: the session directory and its parents up to the git root, so a session in a
+ * subdirectory still finds the project. The walk never goes above the home directory, so a stray `~/supabase` is not
+ * mistaken for the project of every session.
+ */
+export const directories = (cwd: string) => {
+	const found: string[] = [];
+	const home = resolve(homedir());
+	let directory = resolve(cwd);
+	for (;;) {
+		found.push(directory);
+		if (existsSync(join(directory, '.git'))) break;
+		const parent = dirname(directory);
+		if (parent === directory) break;
+		if (directory === home || parent === home) break;
+		directory = parent;
+	}
+	return found;
+};
+
+/** Opens a URL in the desktop browser without blocking the caller. */
+export const open = (url: string) => {
+	const { command, args } = openCommand(process.platform, url);
+	const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+	child.on('error', () => undefined);
+	child.unref();
+};

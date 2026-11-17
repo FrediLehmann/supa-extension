@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { badgeTooltip, lifecycleCommands, markPending } from './shared';
+import { badgeTooltip, markPending } from './shared';
 
 describe('markPending', () => {
 	it('sets an action without mutating the current map', () => {
@@ -35,14 +35,5 @@ describe('badgeTooltip', () => {
 	it('describes the resting state', () => {
 		expect(badgeTooltip(true)).toBe('Open Studio and Mailpit');
 		expect(badgeTooltip(false)).toBe('Stopped');
-	});
-});
-
-describe('lifecycleCommands', () => {
-	it('exposes a start and a stop command', () => {
-		expect(lifecycleCommands.map(({ action, slash }) => ({ action, slash }))).toEqual([
-			{ action: 'start', slash: 'supabase-start' },
-			{ action: 'stop', slash: 'supabase-stop' }
-		]);
 	});
 });
