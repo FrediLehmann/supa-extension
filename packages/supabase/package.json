@@ -1,5 +1,5 @@
 {
-	"name": "@supa-extension/supabase",
+	"name": "@supabase-agent-extension/supabase",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -8,7 +8,8 @@
 		"./host": "./src/host.ts",
 		"./node": "./src/node.ts"
 	},
-	"files": [
-		"src"
-	]
+	"devDependencies": {
+		"@types/bun": "catalog:",
+		"@types/node": "catalog:"
+	}
 }

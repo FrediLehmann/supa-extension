@@ -1,8 +1,22 @@
 {
-	"name": "supa-extension",
+	"name": "supabase-agent-extension",
 	"private": true,
 	"type": "module",
+	"workspaces": [
+		"packages/*",
+		"apps/*"
+	],
+	"catalog": {
+		"@types/bun": "^1.4.4",
+		"@types/node": "^24.0.0",
+		"typescript": "^6.0.3"
+	},
 	"scripts": {
+		"build": "bun run build:claude && bun run build:pi && bun run build:opencode",
+		"build:claude": "bun run --cwd apps/claude build",
+		"build:pi": "bun run --cwd apps/pi build",
+		"build:opencode": "bun run --cwd apps/opencode build",
+		"typecheck": "tsc -p packages/supabase && tsc -p apps/claude && tsc -p apps/pi && tsc -p apps/opencode",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "eslint .",
@@ -12,16 +26,16 @@
 		"test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov"
 	},
 	"devDependencies": {
-		"@earendil-works/pi-coding-agent": "^1.5.2",
 		"@eslint/js": "^10.0.1",
 		"@trivago/prettier-plugin-sort-imports": "^6.0.2",
-		"@types/bun": "^1.4.4",
+		"@types/bun": "catalog:",
 		"eslint": "^10.15.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-solid": "^0.19.0",
 		"prettier": "^3.10.1",
 		"prettier-plugin-svelte": "^4.1.1",
 		"prettier-plugin-tailwindcss": "^0.8.1",
+		"typescript": "catalog:",
 		"typescript-eslint": "^8.73.0"
 	}
 }
