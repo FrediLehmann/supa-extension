@@ -1,0 +1,17 @@
+{
+	"name": "supabase",
+	"version": "0.0.0",
+	"description": "Read, start, stop, and open the local Supabase stack of the current project.",
+	"author": {
+		"name": "Fredi Lehmann"
+	},
+	"license": "MIT",
+	"keywords": ["supabase", "database", "local-development"],
+	"mcpServers": {
+		"supabase": {
+			"command": "node",
+			"args": ["${CLAUDE_PLUGIN_ROOT}/dist/cli.js", "mcp"]
+		}
+	},
+	"repository": "https://github.com/FrediLehmann/supabase-agent-extension"
+}

@@ -1,0 +1,17 @@
+{
+	"description": "Tells the model whether the local Supabase stack is running when a session starts.",
+	"hooks": {
+		"SessionStart": [
+			{
+				"matcher": "startup|resume|clear|compact",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/cli.js\" session-start",
+						"timeout": 10
+					}
+				]
+			}
+		]
+	}
+}

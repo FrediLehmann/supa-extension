@@ -1,0 +1,17 @@
+{
+	"name": "supabase-agent-extension",
+	"owner": {
+		"name": "Frederic Lehmann"
+	},
+	"description": "Supabase extensions for AI coding agents.",
+	"plugins": [
+		{
+			"name": "supabase",
+			"source": {
+				"source": "npm",
+				"package": "claude-supabase-extension"
+			},
+			"description": "Read, start, stop, and open the local Supabase stack of the current project."
+		}
+	]
+}

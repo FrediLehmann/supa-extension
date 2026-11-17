@@ -1,0 +1,34 @@
+{
+	"name": "claude-supabase-extension",
+	"version": "0.0.0",
+	"description": "Read, start, stop, and open the local Supabase stack from Claude Code.",
+	"license": "MIT",
+	"type": "module",
+	"files": [
+		".claude-plugin",
+		"commands",
+		"hooks",
+		"dist"
+	],
+	"keywords": [
+		"supabase",
+		"claude-code-plugin"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/FrediLehmann/supabase-agent-extension",
+		"directory": "apps/claude"
+	},
+	"scripts": {
+		"build": "bun build src/cli.ts --outfile dist/cli.js --target=node --format=esm",
+		"prepack": "bun run build"
+	},
+	"devDependencies": {
+		"@supabase-agent-extension/supabase": "workspace:*",
+		"@types/bun": "catalog:",
+		"@types/node": "catalog:"
+	},
+	"engines": {
+		"node": ">=20"
+	}
+}
