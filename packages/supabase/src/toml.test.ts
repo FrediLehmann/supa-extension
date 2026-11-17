@@ -31,7 +31,7 @@ describe('parse', () => {
 			studio?: { port?: unknown };
 			local_smtp?: { port?: unknown };
 		};
-		expect(config.project_id).toBe('supa-extension');
+		expect(config.project_id).toBe('supabase-agent-extension');
 		expect(config.studio?.port).toBe(54323);
 		expect(config.local_smtp?.port).toBe(54324);
 	});
@@ -117,6 +117,21 @@ describe('parse', () => {
 
 	it('keeps a # inside a one-line multi-line string', () => {
 		expect(parse('text = """a # b"""')).toEqual({ text: 'a # b' });
+	});
+
+	it('does not let an unbalanced quote inside a comment open a string', () => {
+		const config = parse(`
+			# don't read the next line as a string
+			project_id = "app"
+			# a stray " quote stays in this comment
+			[studio]
+			port = 54323
+		`);
+		expect(config).toEqual({ project_id: 'app', studio: { port: 54323 } });
+	});
+
+	it('does not let a quote inside a multi-line string end it early', () => {
+		expect(parse('text = """a " # b"""')).toEqual({ text: 'a " # b' });
 	});
 
 	it('decodes a \\U escape before a \\u escape', () => {

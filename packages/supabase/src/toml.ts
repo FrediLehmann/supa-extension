@@ -22,69 +22,67 @@ const isTable = (value: Toml | Scalar | undefined): value is Toml => {
 	return typeof value === 'object';
 };
 
-/** The document without its comments. A `#` inside a single- or multi-line string does not start one. */
-const stripComments = (text: string) => {
-	let stripped = '';
+/**
+ * Walks the text once, collecting the indexes outside quoted strings and the comments a `#` opens there.
+ *
+ * Handling both in one pass keeps a quote inside a comment from being mistaken for a string delimiter, and lets every
+ * caller find separators without tracking quotes again.
+ */
+const scan = (text: string) => {
+	const outside: number[] = [];
+	const comments: Array<{ start: number; end: number }> = [];
 	let index = 0;
 	// The delimiter that closes the string we are inside, or undefined outside a string.
 	let close: string | undefined;
 	while (index < text.length) {
 		const character = text[index] as string;
-		if (!close) {
-			if (character === '#') {
-				const end = text.indexOf('\n', index);
-				index = end < 0 ? text.length : end;
+		if (close) {
+			// Basic strings escape the next character, so an escaped quote does not close them.
+			if (character === '\\' && close.startsWith('"')) {
+				index += 2;
 				continue;
 			}
-			if (character === '"' || character === "'") {
-				close = text.startsWith(character.repeat(3), index) ? character.repeat(3) : character;
-				stripped += close;
+			if (text.startsWith(close, index)) {
 				index += close.length;
+				close = undefined;
 				continue;
 			}
-			stripped += character;
 			index++;
 			continue;
 		}
-		// Basic strings escape the next character, so an escaped quote does not close them.
-		if (character === '\\' && (close === '"' || close === '"""')) {
-			stripped += text.slice(index, index + 2);
-			index += 2;
+		if (character === '#') {
+			const end = text.indexOf('\n', index);
+			comments.push({ start: index, end: end < 0 ? text.length : end });
+			index = end < 0 ? text.length : end;
 			continue;
 		}
-		if (text.startsWith(close, index)) {
-			stripped += close;
+		if (character === '"' || character === "'") {
+			close = text.startsWith(character.repeat(3), index) ? character.repeat(3) : character;
 			index += close.length;
-			close = undefined;
 			continue;
 		}
-		stripped += character;
+		outside.push(index);
 		index++;
 	}
-	return stripped;
+	return { outside, comments };
+};
+
+/** The document without its comments. A `#` inside a single- or multi-line string does not start one. */
+const stripComments = (text: string) => {
+	let stripped = '';
+	let copied = 0;
+	for (const { start, end } of scan(text).comments) {
+		stripped += text.slice(copied, start);
+		copied = end;
+	}
+	return stripped + text.slice(copied);
 };
 
 /** The key and value of `key = value`, split at the first `=` outside a quoted key. */
 const assignment = (line: string) => {
-	let quote: string | undefined;
-	let escaped = false;
-	for (let index = 0; index < line.length; index++) {
-		const character = line[index] as string;
-		if (escaped) {
-			escaped = false;
-			continue;
-		}
-		if (quote) {
-			if (character === '\\' && quote === '"') escaped = true;
-			else if (character === quote) quote = undefined;
-			continue;
-		}
-		if (character === '"' || character === "'") quote = character;
-		else if (character === '=') {
-			return { key: line.slice(0, index), value: line.slice(index + 1).trim() };
-		}
-	}
-	return undefined;
+	const index = scan(line).outside.find((position) => line[position] === '=');
+	if (index === undefined) return undefined;
+	return { key: line.slice(0, index), value: line.slice(index + 1).trim() };
 };
 
 /** A key or string with its surrounding quotes removed. */
@@ -100,34 +98,13 @@ const unquote = (text: string) => {
 /** Splits a dotted key path, honoring quoted parts such as `"a.b".c`. */
 const path = (key: string) => {
 	const parts: string[] = [];
-	let quote: string | undefined;
-	let escaped = false;
-	let current = '';
-	for (const character of key) {
-		if (escaped) {
-			escaped = false;
-			current += character;
-			continue;
-		}
-		if (quote) {
-			if (character === '\\' && quote === '"') escaped = true;
-			else if (character === quote) quote = undefined;
-			current += character;
-			continue;
-		}
-		if (character === '"' || character === "'") {
-			quote = character;
-			current += character;
-			continue;
-		}
-		if (character === '.') {
-			parts.push(current);
-			current = '';
-			continue;
-		}
-		current += character;
+	let start = 0;
+	for (const index of scan(key).outside) {
+		if (key[index] !== '.') continue;
+		parts.push(key.slice(start, index));
+		start = index + 1;
 	}
-	parts.push(current);
+	parts.push(key.slice(start));
 	return parts.map(unquote).filter(Boolean);
 };
 
@@ -202,20 +179,9 @@ type Skip = { readonly until: string } | { depth: number };
 /** The bracket nesting a value opens, ignoring brackets inside quoted strings. */
 const balance = (text: string) => {
 	let depth = 0;
-	let quote: string | undefined;
-	let escaped = false;
-	for (const character of text) {
-		if (escaped) {
-			escaped = false;
-			continue;
-		}
-		if (quote) {
-			if (character === '\\' && quote === '"') escaped = true;
-			else if (character === quote) quote = undefined;
-			continue;
-		}
-		if (character === '"' || character === "'") quote = character;
-		else if (character === '[' || character === '{') depth++;
+	for (const index of scan(text).outside) {
+		const character = text[index];
+		if (character === '[' || character === '{') depth++;
 		else if (character === ']' || character === '}') depth--;
 	}
 	return depth;
