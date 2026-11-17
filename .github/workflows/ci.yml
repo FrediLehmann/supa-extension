@@ -1,0 +1,101 @@
+name: Check and Publish
+
+on:
+  push:
+    branches: ['**']
+    tags: ['*-v*']
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: setup bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.4
+
+      - name: install
+        run: bun install --frozen-lockfile
+
+      - name: format
+        run: bun run format:check
+
+      - name: lint
+        run: bun run lint
+
+      - name: typecheck
+        run: bun run typecheck
+
+      # every published package ships only dist/, so a broken bundle must fail before the release tag
+      - name: build claude plugin
+        run: bun run build:claude
+
+      - name: build pi extension
+        run: bun run build:pi
+
+      - name: build opencode plugin
+        run: bun run build:opencode
+
+      - name: test
+        run: bun run test
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: setup bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.4
+
+      - name: setup node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: install
+        run: bun install --frozen-lockfile
+
+      # <app>-v<version> selects apps/<app>, e.g. claude-v0.1.0 publishes apps/claude
+      - name: resolve tag
+        run: |
+          APP="${GITHUB_REF_NAME%-v*}"
+          VERSION="${GITHUB_REF_NAME##*-v}"
+          test -d "apps/$APP" || { echo "apps/$APP not found"; exit 1; }
+          echo "app=$APP" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_ENV"
+          echo "pkg=$(jq -r .name "apps/$APP/package.json")" >> "$GITHUB_ENV"
+
+      # the tag, package.json, and (for Claude) plugin.json must name the same version
+      - name: check version
+        run: |
+          test "$(jq -r .version "apps/$app/package.json")" = "$version" || { echo "apps/$app/package.json is not at $version"; exit 1; }
+          manifest="apps/$app/.claude-plugin/plugin.json"
+          if [ -f "$manifest" ]; then
+            test "$(jq -r .version "$manifest")" = "$version" || { echo "$manifest is not at $version"; exit 1; }
+          fi
+
+      - name: create github release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
+        with:
+          name: '${{ env.pkg }} v${{ env.version }}'
+          generate_release_notes: true
+
+      # prepack builds dist/ first
+      - name: publish
+        working-directory: apps/${{ env.app }}
+        run: npm publish
