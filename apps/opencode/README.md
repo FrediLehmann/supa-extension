@@ -6,7 +6,7 @@ An OpenCode extension that brings a local Supabase stack into your session. It r
 project's stack is running, starts and stops it with the Supabase CLI, and opens Supabase Studio and
 Mailpit from the session header.
 
-Part of the [supa-extension](../../README.md) monorepo.
+Part of the [supabase-agent-extension](../../README.md) monorepo.
 
 ## What it adds
 
@@ -15,9 +15,9 @@ contract.
 
 | Part         | Entry point                                 | Runs in          | What it adds                                                            |
 | ------------ | ------------------------------------------- | ---------------- | ----------------------------------------------------------------------- |
-| Server       | `src/index.ts`                              | OpenCode server  | Registers the `supabase` RPC namespace (`status`, `start`, `stop`)      |
+| Server       | `src/index.ts` → `dist/index.js`            | OpenCode server  | Registers the `supabase` RPC namespace (`status`, `start`, `stop`)      |
 | RPC contract | `src/rpc.ts`                                | Shared           | Typed method/input/output definitions used by both parts                |
-| TUI          | `src/tui.tsx`                               | OpenCode TUI     | Online indicator and Start/Stop commands                                |
+| TUI          | `src/tui.tsx` → `dist/tui.js`               | OpenCode TUI     | Online indicator and Start/Stop commands                                |
 | GUI          | `src/gui.tsx` → `dist/gui-experimental.cjs` | OpenCode Desktop | Session header badge, Start/Stop commands, Studio and Mailpit shortcuts |
 
 ### TUI indicator and commands
@@ -78,7 +78,7 @@ Studio defaults to `54323` (`studio.port`) and Mailpit to `54324` (`local_smtp.p
 
 ## How it works
 
-The server part uses [`@supa-extension/supabase`](../../packages/supabase/src/node.ts) to do the work:
+The server part uses [`@supabase-agent-extension/supabase`](../../packages/supabase/src/node.ts) to do the work:
 
 - read and parse `<project>/supabase/config.toml`;
 - detect running containers with `docker ps --filter label=com.supabase.cli.project=<project_id>`;
@@ -95,16 +95,15 @@ minimal `PATH`. If the CLI is missing, the extension reports how to install it.
 - [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) —
   `brew install supabase/tap/supabase`.
 - Docker running the local Supabase containers.
-- [Bun](https://bun.sh) to install dependencies and build the GUI bundle.
+- [Bun](https://bun.sh) to install dependencies and build the plugin.
 
 ## Install
 
-The extension is private and is loaded from a local path. Build it first:
+The extension is loaded from a local path. Build it first, from the repository root:
 
 ```sh
-cd apps/opencode
 bun install
-bun run build
+bun run build:opencode
 ```
 
 Then add this directory to the `plugins` array in your global
@@ -114,7 +113,7 @@ so use it rather than a project config:
 ```jsonc
 {
 	"$schema": "https://opencode.ai/config.json",
-	"plugins": ["/absolute/path/to/supa-extension/apps/opencode"]
+	"plugins": ["/absolute/path/to/supabase-agent-extension/apps/opencode"]
 }
 ```
 
@@ -125,16 +124,21 @@ footer when you run OpenCode in the terminal.
 ## Development
 
 ```sh
+bun install     # repository root: installs every workspace
 cd apps/opencode
-bun install
-bun run dev     # rebuild dist/gui-experimental.cjs on change
+bun run dev     # rebuild every part on change
 bun run build   # one-off production build
 ```
 
-`dist/gui-experimental.cjs` is the GUI part referenced by the package `exports` and is gitignored, so
-it must exist for OpenCode Desktop to load the GUI. Rebuild it after changing the GUI.
+The package `exports` point at `dist/`, which is gitignored, so it must be built for OpenCode to load
+the plugin; rebuild after changing the plugin or `packages/supabase`. `build:server` bundles the server
+part into `dist/index.js` with `bun build`, `build.tui.ts` bundles the TUI part into `dist/tui.js`,
+compiling its JSX with OpenTUI's Solid transform, and Vite builds the GUI part into
+`dist/gui-experimental.cjs`. Each output inlines
+`packages/supabase` and keeps `@opencode/plugin`, Solid, and OpenTUI external, since OpenCode provides
+them.
 
-The shared TUI/GUI helpers are covered by `src/shared.test.ts`, the TUI plugin's slot and command
+The helpers in `src/shared.ts` are covered by `src/shared.test.ts`, the TUI plugin's slot and command
 wiring by `src/tui.test.ts`, and the GUI wiring by `src/gui.test.ts`. The GUI test loads `gui.tsx`
 through Vite and `vite-plugin-solid` because Bun cannot compile Solid JSX. Run the suite from the
 repository root with `bun run test`.
@@ -145,9 +149,11 @@ repository root with `bun run test`.
 src/
   index.ts    server part: registers the RPC methods
   rpc.ts      RPC contract shared by the server, TUI, and GUI
-  shared.ts   helpers the TUI and GUI share: polling, RPC wrappers, commands
+  shared.ts   helpers the TUI and GUI share: the pending map and the badge tooltip
+  status.ts   status polling shared by the TUI indicator and the GUI badge
   tui.tsx     TUI part: footer indicator and Start/Stop commands
   gui.tsx     GUI part: badge, commands, Studio and Mailpit shortcuts
+build.tui.ts    builds the TUI part into dist/ with OpenTUI's Solid transform
 vite.config.ts  builds the GUI bundle with the Solid plugin
 ```
 
@@ -160,7 +166,7 @@ vite.config.ts  builds the GUI bundle with the Solid plugin
   in the OpenCode config.
 - **TUI part missing after adding `./tui`** — the background server resolves every plugin's
   entrypoints once at startup and caches them, so a TUI launched against an already-running server
-  cannot see a newly added `./tui` export. Restart the server (`opencode service restart`) or restart
+  cannot see a newly added `./tui` export. Make sure `dist/tui.js` was built. Restart the server (`opencode service restart`) or restart
   OpenCode, then reopen the TUI. `opencode --standalone` starts a fresh server and is a quick way to
   confirm the TUI part itself works.
 - **Badge is greyed out** — the stack is not running; use **Start Supabase** or `supabase start`.

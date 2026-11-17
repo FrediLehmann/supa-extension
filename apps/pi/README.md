@@ -5,7 +5,7 @@ Status: **Available** · Package: `pi-supabase-extension` · Host: [pi](https://
 An extension that brings the local Supabase stack into a pi session. It reports whether the project's
 stack is running, starts and stops it with the Supabase CLI, and opens Supabase Studio and Mailpit.
 
-Part of the [supa-extension](../../README.md) monorepo.
+Part of the [supabase-agent-extension](../../README.md) monorepo.
 
 ## What it adds
 
@@ -52,8 +52,9 @@ Everything Supabase-specific comes from [`packages/supabase`](../../packages/sup
 
 - `src/index.ts` — host-agnostic status detection;
 - `src/host.ts` — the helpers every host adapter shares: polling interval, the offline status, the
-  lifecycle wrappers, and the URLs a host opens;
-- `src/node.ts` — config loading, container detection with
+  lifecycle wrappers, the tool schema and its actions behind one in-flight guard, the Start/Stop
+  commands, the status report, and the URLs a host opens;
+- `src/node.ts` — config loading, project discovery, opening the browser, container detection with
   `docker ps --filter label=com.supabase.cli.project=<project_id>`, and the `supabase start` /
   `supabase stop` lifecycle in the project directory.
 
@@ -74,7 +75,7 @@ GUI are OpenCode-specific.
 ```text
 src/
   index.ts    the extension: tool, commands, footer indicator, polling
-  shared.ts   helpers: project directories, indicator text, reports, browser commands
+  shared.ts   the footer indicator text and its key
 ```
 
 ## Requirements
@@ -84,22 +85,30 @@ src/
   `brew install supabase/tap/supabase`.
 - Docker running the local Supabase containers.
 
-The extension has no runtime dependencies: pi loads the TypeScript sources through jiti, and the host
-package is only imported for types.
+The extension has no runtime dependencies: the shared package is bundled into `dist/index.js`, and the
+host package is only imported for types.
 
 ## Install
 
-Add this directory to the `extensions` array in your global `~/.pi/agent/settings.json`:
+Build it first, from the repository root:
+
+```sh
+bun install
+bun run build:pi
+```
+
+Then add this directory to the `extensions` array in your global `~/.pi/agent/settings.json`:
 
 ```json
 {
-	"extensions": ["/absolute/path/to/supa-extension/apps/pi"]
+	"extensions": ["/absolute/path/to/supabase-agent-extension/apps/pi"]
 }
 ```
 
-Or load it for one run with `pi -e /absolute/path/to/supa-extension/apps/pi`.
+Or load it for one run with `pi -e /absolute/path/to/supabase-agent-extension/apps/pi`.
 
-The directory's `package.json` declares `pi.extensions`, so no build or install step is needed. Open a
+The directory's `package.json` points `pi.extensions` at `dist/index.js`, which is gitignored, so rebuild
+after changing the extension or the shared package. Open a
 session inside a project with a `supabase/config.toml` and the footer shows the Supabase indicator;
 `/supabase-open` opens Studio and Mailpit, and the model can read the status or start and stop the
 stack through the `supabase` tool.
@@ -107,6 +116,7 @@ stack through the `supabase` tool.
 ## Development
 
 ```sh
+bun run build         # rebuild dist/index.js
 bun run test          # repository root: status, TOML, and extension wiring tests
 bun run lint
 bun run format:check
